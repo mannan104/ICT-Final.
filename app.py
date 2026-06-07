@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
-# Safe PDF import
+# Optional PDF
 try:
     from reportlab.pdfgen import canvas
     pdf_available = True
@@ -13,28 +13,51 @@ except:
 # =========================
 # PAGE CONFIG
 # =========================
-st.set_page_config(page_title="ICT Structural Safety", layout="wide")
-plt.style.use('dark_background')
+st.set_page_config(page_title="Beam Deflection Visualizer", layout="wide")
 
 # =========================
-# BACKGROUND (BEAM IMAGE)
+# MODERN STYLE
 # =========================
 st.markdown("""
 <style>
+
+/* Background */
 .stApp {
-    background-image: url("https://images.unsplash.com/photo-1581093458791-9d42b6e50425");
-    background-size: cover;
+    background: linear-gradient(135deg, #0f172a, #020617);
+    color: white;
 }
-.block-container {
-    background: rgba(0,0,0,0.80);
-    padding: 2rem;
+
+/* Glass cards */
+[data-testid="metric-container"] {
+    background: rgba(255,255,255,0.05);
     border-radius: 15px;
+    padding: 15px;
+    backdrop-filter: blur(10px);
 }
+
+/* Team cards */
+.team-card {
+    background: rgba(255,255,255,0.05);
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+    transition: 0.3s;
+}
+.team-card:hover {
+    background: rgba(56,189,248,0.2);
+    transform: scale(1.05);
+}
+
+/* Titles */
+h1, h2, h3 {
+    color: #38bdf8;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
 # =========================
-# TITLE
+# HEADER
 # =========================
 st.title("🏗️ Beam Deflection Visualizer")
 st.subheader("📘 ICT for Structural Safety")
@@ -42,14 +65,28 @@ st.subheader("📘 ICT for Structural Safety")
 # =========================
 # TEAM SECTION
 # =========================
-with st.expander("👥 Project Team Members"):
-    st.write("""
-**Abdul Mannan** — 25-ME-55  
-**Muhammad bin Akarma** — 25-ME-59  
-**Muneeb Azhar** — 25-ME-27  
-**Ahmed Ali** — 25-ME-115  
-**Hammad Fida** — 25-ME-03  
-""")
+st.markdown("### 👥 Project Team")
+
+cols = st.columns(5)
+
+team = [
+    ("Abdul Mannan", "25-ME-55"),
+    ("Muhammad bin Akarma", "25-ME-59"),
+    ("Muneeb Azhar", "25-ME-27"),
+    ("Ahmed Ali", "25-ME-115"),
+    ("Hammad Fida", "25-ME-03"),
+]
+
+for i, (name, reg) in enumerate(team):
+    with cols[i]:
+        st.markdown(f"""
+        <div class="team-card">
+        <h4>{name}</h4>
+        <p>{reg}</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+st.divider()
 
 # =========================
 # SIDEBAR INPUTS
@@ -57,7 +94,7 @@ with st.expander("👥 Project Team Members"):
 with st.sidebar:
     st.header("⚙️ Input Parameters")
 
-    L = st.slider("Length (m)", 1.0, 20.0, 10.0)
+    L = st.slider("Beam Length (m)", 1.0, 20.0, 10.0)
 
     load_type = st.selectbox("Load Type", ["Point Load", "UDL", "Triangular"])
 
@@ -82,17 +119,11 @@ with st.sidebar:
 
     st.subheader("📐 Cross Section")
 
-    shape = st.selectbox("Shape", ["Rectangular", "Circular"])
+    b = st.number_input("Width (m)", 0.1, 2.0, 0.3)
+    h = st.number_input("Height (m)", 0.1, 2.0, 0.6)
 
-    if shape == "Rectangular":
-        b = st.number_input("Width (m)", value=0.3)
-        h = st.number_input("Height (m)", value=0.6)
-        I = (b * h**3) / 12
-        c = h / 2
-    else:
-        d = st.number_input("Diameter (m)", value=0.5)
-        I = (np.pi * d**4) / 64
-        c = d / 2
+    I = (b * h**3) / 12
+    c = h / 2
 
 # =========================
 # CALCULATIONS
@@ -114,6 +145,7 @@ else:
     y = (w * x * (L - x)**3) / (30 * E * I)
     M_max = (w * L**2) / 6
 
+# Downward deflection
 y = -y
 
 sigma = (M_max * c) / I
@@ -122,83 +154,89 @@ FS = allowable / sigma if sigma != 0 else 0
 # =========================
 # RESULTS
 # =========================
-st.markdown("### 📊 Results")
+st.markdown("### 📊 Structural Results")
 
 c1, c2, c3, c4 = st.columns(4)
 
-c1.metric("Max Deflection", f"{delta_max*1000:.2f} mm")
-c2.metric("Max Moment", f"{M_max:.2f} Nm")
+c1.metric("Deflection", f"{delta_max*1000:.2f} mm")
+c2.metric("Moment", f"{M_max:.2f} Nm")
 c3.metric("Stress", f"{sigma/1e6:.2f} MPa")
-c4.metric("FOS", f"{FS:.2f}")
+c4.metric("Factor of Safety", f"{FS:.2f}")
 
 # =========================
 # GRAPH
 # =========================
 st.markdown("### 📉 Deflection Curve")
 
-fig, ax = plt.subplots()
-ax.plot(x, y * 1000, linewidth=3)
-ax.axhline(0, linestyle='--')
-ax.set_xlabel("Length (m)")
+fig, ax = plt.subplots(figsize=(12, 4))
+ax.plot(x, y * 1000, color='#38bdf8', linewidth=3)
+ax.fill_between(x, y * 1000, 0, color='#38bdf8', alpha=0.15)
+ax.axhline(0, linestyle='--', color='gray')
+
+ax.set_xlabel("Beam Length (m)")
 ax.set_ylabel("Deflection (mm)")
-ax.grid(True)
+ax.set_title("Beam Deflection Profile")
+ax.grid(True, alpha=0.3)
 
 st.pyplot(fig)
+plt.close(fig)
 
 # =========================
 # ANIMATION
 # =========================
-st.markdown("### 🎬 Animation")
+st.markdown("### 🎬 Deformation Animation")
 
-if st.checkbox("Play Animation"):
+if st.checkbox("Start Animation"):
     placeholder = st.empty()
-    for scale in np.linspace(0, 1, 12):
-        fig_anim, ax_anim = plt.subplots()
-        ax_anim.plot(x, y * scale * 1000)
-        ax_anim.set_ylim(min(y)*1000, 10)
-        placeholder.pyplot(fig_anim)
-        plt.close(fig_anim)
+    for scale in np.linspace(0, 1, 15):
+        fig2, ax2 = plt.subplots()
+        ax2.plot(x, y * scale * 1000, color='cyan')
+        ax2.set_ylim(min(y)*1000, 10)
+        ax2.set_title("Dynamic Deflection")
+        placeholder.pyplot(fig2)
+        plt.close(fig2)
         time.sleep(0.05)
 
 # =========================
-# SAFETY
+# SAFETY CHECK
 # =========================
-st.markdown("### ⚠️ Safety Check")
+st.markdown("### ⚠️ Safety Status")
 
 if FS > 2:
-    st.success("✅ SAFE DESIGN")
+    st.success("✅ SAFE STRUCTURE")
 elif FS > 1:
-    st.warning("⚠ MODERATE")
+    st.warning("⚠️ NEEDS OPTIMIZATION")
 else:
     st.error("❌ FAILURE RISK")
 
 # =========================
 # PDF EXPORT
 # =========================
-st.markdown("### 📄 Report")
+st.markdown("### 📄 Generate Report")
 
 if pdf_available:
 
     def create_pdf():
-        file_path = "report.pdf"
-        c = canvas.Canvas(file_path)
+        path = "beam_report.pdf"
+        c_pdf = canvas.Canvas(path)
 
-        c.drawString(100, 800, "Beam Deflection Report")
-        c.drawString(100, 770, f"Length: {L} m")
-        c.drawString(100, 750, f"Deflection: {delta_max:.6f}")
-        c.drawString(100, 730, f"Stress: {sigma:.2f}")
-        c.drawString(100, 710, f"FOS: {FS:.2f}")
+        c_pdf.drawString(100, 800, "Beam Deflection Report")
+        c_pdf.drawString(100, 770, f"Length: {L} m")
+        c_pdf.drawString(100, 750, f"Deflection: {delta_max:.6f} m")
+        c_pdf.drawString(100, 730, f"Stress: {sigma:.2f} Pa")
+        c_pdf.drawString(100, 710, f"Factor of Safety: {FS:.2f}")
 
-        c.save()
-        return file_path
+        c_pdf.save()
+        return path
 
-    if st.button("Generate PDF"):
+    if st.button("📥 Generate PDF Report"):
         pdf = create_pdf()
+
         with open(pdf, "rb") as f:
-            st.download_button("Download PDF", f, "beam_report.pdf")
+            st.download_button("⬇ Download PDF", f, "beam_report.pdf")
 
 else:
-    st.warning("Install reportlab for PDF feature")
+    st.warning("Install 'reportlab' to enable PDF export")
 
 
 
