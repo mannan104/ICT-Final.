@@ -138,9 +138,7 @@ with st.sidebar:
 x = np.linspace(0, L, 250)
 
 if load_type == "Point Load (Mid-Span)":
-    # Max deflection at midspan
     delta_max = (P * L**3) / (48 * E * I)
-    # Piecewise function handled via symmetry to prevent right-side curve distortion
     x_symmetric = np.minimum(x, L - x)
     y = (P * x_symmetric * (3 * L**2 - 4 * x_symmetric**2)) / (48 * E * I)
     M_max = (P * L) / 4
@@ -156,7 +154,6 @@ else: # Symmetric Triangular Load peaking at center span
     y = (w * x_symmetric * (25 * L**4 - 40 * L**2 * x_symmetric**2 + 16 * x_symmetric**4)) / (960 * E * I)
     M_max = (w * L**2) / 12
 
-# Vector adjustments: map down deflection visually
 y_deflected = -y
 max_bending_stress = (M_max * c) / I
 fos = allow / max_bending_stress if max_bending_stress > 0 else float('inf')
@@ -183,14 +180,15 @@ with m3:
         <div class='metric-value'>{max_bending_stress/1e6:.2f} MPa</div>
     </div>""", unsafe_allow_html=True)
 with m4:
+    fos_color = "#4ade80" if fos >= 2.0 else "#fbbf24" if fos >= 1.0 else "#f87171"
+    fos_display = f"{fos:.2f}" if fos != float('inf') else "N/A"
     st.markdown(f"""<div class='metric-card'>
         <div class='metric-label'>🛡️ Factor of Safety</div>
-        <div class='metric-value' style='color:{"#4ade80" if fos >= 2.0 else "#fbbf24" if fos >= 1.0 else "#f87171"};'>{fos:.2f}</div>
+        <div class='metric-value' style='color:{fos_color};'>{fos_display}</div>
     </div>""", unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Critical Limit State Evaluation Feedback
 if fos >= 2.0:
     st.success(f"✅ **STRUCTURALLY VALID SIGNATURE**: Bending stress stays safely below limit constraints for {material}. System meets industrial code margins.")
 elif 1.0 <= fos < 2.0:
@@ -208,12 +206,10 @@ fig, ax = plt.subplots(figsize=(12, 4.5))
 fig.patch.set_facecolor('#020617')
 ax.set_facecolor('#0f172a')
 
-# Plot structural members
 ax.plot(x, y_deflected * 1000, color="#38bdf8", linewidth=3.5, label="Deformed Beam Axis")
 ax.fill_between(x, y_deflected * 1000, 0, color="#38bdf8", alpha=0.08)
 ax.axhline(0, color="#64748b", linestyle='--', linewidth=1.2, label="Undeformed Structural Horizon")
 
-# Polish details
 ax.set_xlabel("Linear Position along Beam Span (x, meters)", color="#94a3b8", fontsize=10)
 ax.set_ylabel("Deflection Delta (y, millimeters)", color="#94a3b8", fontsize=10)
 ax.grid(True, color="#1e293b", linestyle=':', alpha=0.6)
@@ -230,7 +226,6 @@ plt.close(fig)
 with st.expander("🎬 Execute Dynamic Load Application Sequence"):
     if st.button("Initiate Progressive Strain Simulation"):
         frame_slot = st.empty()
-        # Smooth load application via sine spacing vector 
         time_steps = np.sin(np.linspace(0, np.pi/2, 16))
         
         for scalar in time_steps:
@@ -263,7 +258,6 @@ if PDF_OK:
         pdf_buffer = io.BytesIO()
         pdf_canvas = canvas.Canvas(pdf_buffer, pagesize=letter)
         
-        # Formatting Coordinates Layout 
         pdf_canvas.setFont("Helvetica-Bold", 18)
         pdf_canvas.drawString(50, 750, "Structural Verification & Stress Audit Report")
         pdf_canvas.setFont("Helvetica", 9)
@@ -271,7 +265,6 @@ if PDF_OK:
         pdf_canvas.drawString(50, 735, f"Automated Engineering Run System Trace • Generated: {time.strftime('%b %d, %Y | %H:%M:%S')}")
         pdf_canvas.line(50, 725, 560, 725)
         
-        # Block 1 Inputs
         pdf_canvas.setFillColorRGB(0.1, 0.1, 0.1)
         pdf_canvas.setFont("Helvetica-Bold", 12)
         pdf_canvas.drawString(50, 695, "1. Design Space Boundaries")
@@ -281,7 +274,6 @@ if PDF_OK:
         pdf_canvas.drawString(70, 635, f"Geometric Cross-Section Profile: {b*1000:.0f}mm wide × {h*1000:.0f}mm high")
         pdf_canvas.drawString(70, 615, f"Calculated Moment of Inertia (I): {I:.6e} m⁴")
         
-        # Block 2 Stress States
         pdf_canvas.setFont("Helvetica-Bold", 12)
         pdf_canvas.drawString(50, 575, "2. Analytical Mechanics Calculations")
         pdf_canvas.setFont("Helvetica", 10)
@@ -290,7 +282,6 @@ if PDF_OK:
         pdf_canvas.drawString(70, 515, f"Induced Internal Bending Moment Vector (M_max): {M_max/1000:.2f} kN·m")
         pdf_canvas.drawString(70, 495, f"Calculated Extreme Fiber Bending Stress: {max_bending_stress/1e6:.2f} MPa")
         
-        # Block 3 Safety Summary
         pdf_canvas.setFont("Helvetica-Bold", 12)
         pdf_canvas.drawString(50, 455, "3. Safety & Compliance Verdict")
         pdf_canvas.setFont("Helvetica-Bold", 11)
@@ -319,5 +310,4 @@ if PDF_OK:
 else:
     st.info("💡 Reportlab generation suite uninitialized. Add `reportlab` to requirements workspace dependencies setup to build automation print exports.")
 
-# Footer element tracking project structure
 st.markdown("<div class='project-footer'>💡 Design built with Streamlit Cloud Server Workspace Framework. Project version 2.1.0</div>", unsafe_allow_html=True)
