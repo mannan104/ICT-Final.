@@ -72,8 +72,10 @@ def get_deflection_curve(x, P_N, beam_type):
     EI = E_Pa * I_m4
     
     if beam_type == "Cantilever (Fixed-Free)":
+        # y = (P * x^2 * (3L - x)) / (6EI)
         y = (P_N * (x**2) * (3 * L_m - x)) / (6 * EI)
     else: 
+        # Pinned-pinned mid-span loading
         half_L = L_m / 2
         for idx, x_val in enumerate(x):
             if x_val <= half_L:
@@ -106,63 +108,4 @@ while True:
         dynamic_load = base_load
 
     load_N = dynamic_load * 1000
-    deflection = get_deflection_curve(x_points, load_N, beam_type)
-    max_deflection = np.max(deflection)
-    
-    safety_status = "SAFE" if max_deflection < SAFETY_LIMIT_MM else "CRITICAL RISK"
-    status_color = "#00f2fe" if safety_status == "SAFE" else "#ff4b4b"
-    
-    # Update Real-Time Metrics Row using stable native columns
-    with metric_slot.container():
-        m_col1, m_col2, m_col3, m_col4 = st.columns(4)
-        m_col1.metric("Current Load", f"{dynamic_load:.2f} kN")
-        m_col2.metric("Max Deflection", f"{max_deflection:.2f} mm")
-        m_col3.metric("Allowed Limit", f"{SAFETY_LIMIT_MM:.2f} mm")
-        m_col4.metric("Safety Assessment", safety_status, delta="Ok" if safety_status == "SAFE" else "Danger", delta_color="normal" if safety_status == "SAFE" else "inverse")
-
-    # Build Plotly Visualizer
-    fig = go.Figure()
-    
-    # Reference/Undeflected Line
-    fig.add_trace(go.Scatter(
-        x=x_points, y=np.zeros_like(x_points),
-        mode='lines',
-        name='Original Axis',
-        line=dict(color='rgba(255,255,255,0.2)', width=2, dash='dash')
-    ))
-    
-    # Live Deflected Beam Profile
-    fig.add_trace(go.Scatter(
-        x=x_points, y=-deflection,
-        mode='lines',
-        name='Deflected Profile',
-        line=dict(color=status_color, width=5),
-        fill='tozeroy',
-        fillcolor="rgba(0, 242, 254, 0.1)" if safety_status == "SAFE" else "rgba(255, 75, 75, 0.1)"
-    ))
-
-    # Boundary conditions visual indicators
-    if beam_type == "Cantilever (Fixed-Free)":
-        fig.add_vline(x=0, line_width=4, line_color="gray", line_dash="solid")
-    else:
-        fig.add_trace(go.Scatter(x=[0, L_m], y=[0, 0], mode='markers', marker=dict(symbol='triangle-up', size=15, color='#ffaa00'), showlegend=False))
-
-    fig.update_layout(
-        title=f"Live Structural Strain Deformation Profile ({beam_type})",
-        xaxis_title="Beam Length Location (meters)",
-        yaxis_title="Vertical Displacement (mm)",
-        template="plotly_dark",
-        yaxis=dict(range=[-max_deflection * 1.5 - 5, max_deflection * 0.5 + 5]),
-        xaxis=dict(range=[-0.5, L_m + 0.5]),
-        showlegend=False,
-        height=450,
-        margin=dict(l=40, r=40, t=50, b=40)
-    )
-    
-    with chart_slot.container():
-        st.plotly_chart(fig, use_container_width=True)
-        
-    if run_live_feed:
-        time.sleep(0.08)
-    else:
-        st.stop()
+    deflection = get_
