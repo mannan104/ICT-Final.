@@ -19,9 +19,9 @@ st.set_page_config(
 st.title("⚡ ICT for Structural Safety")
 st.subheader("Live Beam Deflection Visualizer & Risk Monitor")
 
-# Team Members Display Box using native containers
+# Team Members Display Box using pure Markdown (No HTML)
 with st.container(border=True):
-    st.markdown("<p style='color: #00f2fe; font-weight: bold; margin: 0;'>DEVELOPED BY TEAM:</p>", unsafe_with_html=True)
+    st.write("### DEVELOPED BY TEAM:")
     
     cols = st.columns(5)
     team_data = [
@@ -34,7 +34,8 @@ with st.container(border=True):
 
     for i, member in enumerate(team_data):
         with cols[i]:
-            st.markdown(f"**{member['name']}**\n\n*{member['reg']}*")
+            st.markdown(f"**{member['name']}**")
+            st.caption(member['reg'])
 
 st.divider()
 
@@ -137,7 +138,7 @@ while True:
         name='Deflected Profile',
         line=dict(color=status_color, width=5),
         fill='tozeroy',
-        fillcolor=f"rgba(0, 242, 254, 0.1)" if safety_status == "SAFE" else "rgba(255, 75, 75, 0.1)"
+        fillcolor="rgba(0, 242, 254, 0.1)" if safety_status == "SAFE" else "rgba(255, 75, 75, 0.1)"
     ))
 
     # Boundary conditions visual indicators
