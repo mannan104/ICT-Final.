@@ -1,33 +1,29 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
-import time
 
 # ==========================================
-# 1. PAGE CONFIGURATION & LAYOUT WIDENING
+# 1. WIDE PAGE CONFIGURATION
 # ==========================================
 st.set_page_config(
-    page_title="ICT for Structural Safety: Live Beam Deflection Visualizer",
+    page_title="ICT for Structural Safety",
     page_icon="🏗️",
-    layout="wide", # Spreads content across the full viewport width
+    layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Apply sleek high-contrast dark theme presets for engineering graphics
 plt.style.use('dark_background')
 
 # ==========================================
-# 2. HERO HEADER & HIGH-WIDE TEAM CREDITS
+# 2. HEADER & EXPANDED TEAM CREDITS
 # ==========================================
 st.title("🏗️ ICT for Structural Safety")
-st.subheader("Live Beam Deflection Visualizer & Risk Monitor")
+st.subheader("Beam Deflection Analyzer & Risk Monitor")
 
-# Spaced out Team Board to solve congestion
 with st.container(border=True):
     st.write("### 👥 PROJECT DEVELOPED BY TEAM:")
-    st.write("") # Extra padding spacing
+    st.write("") 
     
-    # Using 5 distinct wider layout columns
     cols = st.columns(5)
     team_data = [
         {"name": "Abdul Mannan", "reg": "Reg No: 25-ME-55"},
@@ -39,85 +35,82 @@ with st.container(border=True):
 
     for i, member in enumerate(team_data):
         with cols[i]:
-            # Clean structured card arrangement
             st.markdown(f"#### {member['name']}")
             st.code(member['reg'], language="text")
 
 st.divider()
 
 # ==========================================
-# 3. SIDEBAR CONTROLS
+# 3. INTERACTIVE ENGINEERING SIDEBAR
 # ==========================================
-st.sidebar.header("🔧 Structural Parameters")
+st.sidebar.header("🔧 Structural Inputs")
 
 L = st.sidebar.slider("Beam Length (L) [m]", 1.0, 20.0, 10.0, step=0.5)
-P_base = st.sidebar.slider("Static Point Load (P) [N]", 100.0, 10000.0, 2000.0, step=100.0)
+P = st.sidebar.slider("Applied Point Load (P) [N]", 100.0, 10000.0, 2000.0, step=100.0)
 E = st.sidebar.slider("Young's Modulus (E) [Pa]", 1e9, 2.5e11, 2.0e11, format="%e")
-I = st.sidebar.slider("Moment of Inertia (I) [m⁴]", 0.000001, 0.01, 0.0005, format="%.6f")
-
-st.sidebar.header("⚡ Live Simulation Settings")
-run_vibration = st.sidebar.toggle("Activate Dynamic Load Oscillation", value=True)
+I = st.sidebar.slider("Moment of Inertia (I) [m4]", 0.000001, 0.01, 0.0005, format="%.6f")
 
 # ==========================================
-# 4. ENGINEERING THEORY VISUAL PANEL
+# 4. STATIC CALCULATIONS & PLOT GENERATION
 # ==========================================
-with st.container(border=True):
-    st.markdown("### 📘 Structural Engineering Theory")
-    
-    col_theory_1, col_theory_2 = st.columns([3, 2])
-    with col_theory_1:
-        st.markdown(
-            "For a **Simply Supported Beam** subjected to a concentrated central point load, "
-            "the elastic line curve modeling deformation profile can be calculated using the Euler-Bernoulli beam equation system."
-        )
-        st.latex(r"\delta_{max} = \frac{P \cdot L^3}{48 \cdot E \cdot I}")
-    with col_theory_2:
-        st.markdown(
-            "- **P** = Applied Dynamic Force $(N)$\n"
-            "- **L** = Total Span Length $(m)$\n"
-            "- **E** = Material Modulus of Elasticity $(Pa)$\n"
-            "- **I** = Cross-Sectional Area Moment of Inertia $(m^4)$"
-        )
+delta_max = (P * L**3) / (48 * E * I)
+
+x = np.linspace(0, L, 300)
+y = np.zeros_like(x)
+half_L = L / 2
+
+for idx, x_val in enumerate(x):
+    if x_val <= half_L:
+        y[idx] = -(P * x_val * (3 * L**2 - 4 * x_val**2)) / (48 * E * I)
+    else:
+        x_sym = L - x_val
+        y[idx] = -(P * x_sym * (3 * L**2 - 4 * x_sym**2)) / (48 * E * I)
+
+# A. Metrics Row (Simplified text strings to prevent truncation bugs)
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("Max Displacement", f"{delta_max * 1000:.3f} mm")
+c2.metric("Applied Load Force", f"{P:.1f} N")
+c3.metric("Total Span Length", f"{L:.1f} m")
+c4.metric("Rigidity Factor EI", f"{E*I:.2e} N-m2")
 
 st.write("")
 
+# B. Build Matplotlib Structural Diagram
+fig, ax = plt.subplots(figsize=(12, 4))
+
+ax.plot(x, np.zeros_like(x), color='#475569', linestyle='--', alpha=0.6, label='Baseline')
+ax.plot(x, y * 1000, color='#38bdf8', linewidth=4.5, label='Deflected Profile')
+ax.fill_between(x, y * 1000, 0, color='#38bdf8', alpha=0.1)
+ax.scatter([0, L], [0, 0], color='#f59e0b', s=220, marker='^', zorder=5)
+
+ax.annotate(
+    f"P = {P:.0f} N", 
+    xy=(L/2, np.min(y)*1000), 
+    xytext=(L/2, np.min(y)*1000 + (delta_max*1000*0.4) + 5),
+    arrowprops=dict(facecolor='#f59e0b', shrink=0.08, width=2, headwidth=8),
+    ha='center', color='#f59e0b', weight='bold'
+)
+
+ax.set_title("Beam Deflection Shape Elastic Curve", color='white', fontsize=12, pad=12, weight='bold')
+ax.set_xlabel("Beam Length Coordinate (meters)", color='#94a3b8')
+ax.set_ylabel("Displacement (mm)", color='#94a3b8')
+ax.grid(True, linestyle=':', alpha=0.25, color='#cbd5e1')
+
+max_bound = max(delta_max * 1000 * 1.8, 12)
+ax.set_ylim(-max_bound, max_bound * 0.4)
+ax.set_xlim(-0.5, L + 0.5)
+
+st.pyplot(fig)
+
 # ==========================================
-# 5. DYNAMIC PROCESSING GRAPHICS ENGINE
+# 5. RISK ASSESSMENT INDICATORS
 # ==========================================
-x = np.linspace(0, L, 300)
+st.write("")
+st.markdown("### 🚨 Structural Safety Status Evaluation")
 
-# Clean rendering slot boxes for screen optimization updates
-metric_slot = st.empty()
-plot_slot = st.empty()
-safety_slot = st.empty()
-
-iteration = 0
-while True:
-    # Simulate cyclical physical vibration (traffic, machinery, or wind forces)
-    if run_vibration:
-        iteration += 1
-        vibration_factor = 1 + 0.18 * np.sin(iteration * 0.4)
-        P_dynamic = P_base * vibration_factor
-    else:
-        P_dynamic = P_base
-
-    # Accurate Physics Calculations
-    delta_max = (P_dynamic * L**3) / (48 * E * I)
-    
-    # Map out the deflection shape across length space coordinates
-    y = np.zeros_like(x)
-    half_L = L / 2
-    for idx, x_val in enumerate(x):
-        if x_val <= half_L:
-            y[idx] = -(P_dynamic * x_val * (3 * L**2 - 4 * x_val**2)) / (48 * E * I)
-        else:
-            x_sym = L - x_val
-            y[idx] = -(P_dynamic * x_sym * (3 * L**2 - 4 * x_sym**2)) / (48 * E * I)
-
-    # A. Render Spaced Metric Panels
-    with metric_slot.container():
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Max Displacement", f"{delta_max * 1000:.3f} mm")
-        c2.metric("Dynamic Sensor Load", f"{P_dynamic:.1f} N")
-        c3.metric("Total Span (L)", f"{L:.1f} m")
-        c4.metric("Flexural Rigidity (
+if delta_max < 0.005:
+    st.success("✅ SAFE: Calculated internal strain deformation parameters are well within allowable design tolerances.")
+elif delta_max < 0.02:
+    st.warning("⚠️ WARNING STATUS: Structural displacement levels approaching serviceability state limits.")
+else:
+    st.error("❌ CRITICAL DEFLECTION HAZARD: Severe displacement threshold breached. Immediate design adjustment required.")
