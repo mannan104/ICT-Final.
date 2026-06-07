@@ -3,101 +3,99 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # ==========================================
-# 1. EXPANDED PAGE CONFIGURATION
+# 1. PAGE SETUP & THEME
 # ==========================================
 st.set_page_config(
-    page_title="ICT for Structural Safety: Advanced Beam Analyzer",
+    page_title="Structural Safety Engine",
     page_icon="🏗️",
     layout="wide",
-    initial_sidebar_state="collapsed" # Collapsed to maximize widescreen layout
+    initial_sidebar_state="collapsed"
 )
-
-# Enforce clean dark layout presets for presentation graphics
 plt.style.use('dark_background')
 
 # ==========================================
-# 2. HERO HEADER & HIGH-WIDE TEAM BOARD
+# 2. HERO HEADER & SPARKING TEAM BOARD
 # ==========================================
 st.title("🏗️ ICT for Structural Safety")
-st.subheader("Widescreen Live Beam Deflection Visualizer & Analytical Engine")
+st.subheader("Advanced Beam Deflection & Cross-Section Analyzer")
 
 with st.container(border=True):
     st.write("### 👥 PROJECT DEVELOPED BY TEAM:")
     st.write("") 
-    
     cols = st.columns(5)
-    team_data = [
-        {"name": "Abdul Mannan", "reg": "Reg No: 25-ME-55"},
-        {"name": "Muhammad bin Akarma", "reg": "Reg No: 25-ME-59"},
-        {"name": "Muneeb Azhar", "reg": "Reg No: 25-ME-03"},
-        {"name": "Ahmed Ali", "reg": "Reg No: 25-ME-115"},
-        {"name": "Hammad Fida", "reg": "Reg No: 25-ME-27"}
+    t_data = [
+        {"n": "Abdul Mannan", "r": "Reg No: 25-ME-55"},
+        {"n": "Muhammad bin Akarma", "r": "Reg No: 25-ME-59"},
+        {"n": "Muneeb Azhar", "r": "Reg No: 25-ME-03"},
+        {"n": "Ahmed Ali", "r": "Reg No: 25-ME-115"},
+        {"n": "Hammad Fida", "r": "Reg No: 25-ME-27"}
     ]
-
-    for i, member in enumerate(team_data):
-        with cols[i]:
-            st.markdown(f"#### {member['name']}")
-            st.code(member['reg'], language="text")
+    for idx, member in enumerate(t_data):
+        with cols[idx]:
+            st.markdown(f"#### {member['n']}")
+            st.code(member['r'], language="text")
 
 st.divider()
 
 # ==========================================
-# 3. INITIAL SELECTION & MEMORY STATE
+# 3. GLOBAL FALLBACK PARAMETERS
 # ==========================================
-# Hidden or default values initialized cleanly to avoid string parsing dropouts
-if 'dummy' not in st.session_state:
-    st.session_state['dummy'] = True
+L = 10.0
+P = 5000.0
+E = 2.0e11
+I_val = 0.0005
 
 # ==========================================
-# 4. PHYSICS ENGINE PRE-PROCESSING
+# 4. BOTTOM SEPARATED CONFIGURATION DECKS
 # ==========================================
-# Setup default or layout placeholder properties prior to lower input cards
-x_len = 10.0
-P_force = 5000.0
-E_mod = 2.0e11
-I_inertia = 0.0005
+st.markdown("### 🛠️ Structural Parameter Settings")
+
+# Creating 3 wide configuration layout cards at the very bottom
+p1, p2, p3 = st.columns(3)
+
+with p1:
+    with st.container(border=True):
+        st.markdown("#### 📏 Span Geometry & Load")
+        L = st.slider("Beam Length (L) [meters]", 1.0, 20.0, 10.0, step=0.5)
+        P = st.slider("Point Force Load (P) [N]", 100.0, 15000.0, 5000.0, step=100.0)
+
+with p2:
+    with st.container(border=True):
+        st.markdown("#### 🔬 Material Selector")
+        mat = st.selectbox("Alloy Core", ["Steel (200 GPa)", "Aluminum (70 GPa)", "Concrete (30 GPa)"])
+        E = 2.0e11 if "Steel" in mat else (7.0e10 if "Aluminum" in mat else 3.0e10)
+        st.caption(f"Active Modulus E: {E:e} Pa")
+
+with p3:
+    with st.container(border=True):
+        st.markdown("#### 📐 Profile Shape Definition")
+        profile = st.selectbox("Cross-Section Shape", ["Rectangular Solid Beam", "Heavy I-Beam Profile", "Hollow Structural Tube"])
+        default_I = 0.0005 if "Rectangular" in profile else (0.0012 if "I-Beam" in profile else 0.0002)
+        I_val = st.number_input("Moment of Inertia (I) [m4]", value=default_I, format="%.6f")
 
 # ==========================================
-# 5. DUAL-ZONE RENDER: TOP VISUALIZER REGION
+# 5. PHYSICS EQUATIONS & MODEL GENERATION
 # ==========================================
-# Create dynamic tracking vectors
-x_coord = np.linspace(0, x_len, 300)
-y_disp = np.zeros_like(x_coord)
-half_span = x_len / 2
+delta_max = (P * L**3) / (48 * E * I_val)
 
-# Calculate exact elastic line curve deflection points
-delta_calc = (P_force * x_len**3) / (48 * E_mod * I_inertia)
+x = np.linspace(0, L, 200)
+y = np.zeros_like(x)
+half_L = L / 2
 
-for idx, current_x in enumerate(x_coord):
-    if current_x <= half_span:
-        y_disp[idx] = -(P_force * current_x * (3 * x_len**2 - 4 * current_x**2)) / (48 * E_mod * I_inertia)
+for idx, x_val in enumerate(x):
+    if x_val <= half_L:
+        y[idx] = -(P * x_val * (3 * L**2 - 4 * x_val**2)) / (48 * E * I_val)
     else:
-        symmetric_x = x_len - current_x
-        y_disp[idx] = -(P_force * symmetric_x * (3 * x_len**2 - 4 * symmetric_x**2)) / (48 * E_mod * I_inertia)
+        y[idx] = -(P * (L - x_val) * (3 * L**2 - 4 * (L - x_val)**2)) / (48 * E * I_val)
 
-# Display real-time telemetry panels up top
+# ==========================================
+# 6. GRAPHICS RENDERING (TOP PLACEMENT VIEW)
+# ==========================================
+st.markdown("### 📊 Live Deflection Telemetry Display")
+
+# Live Metrics Row
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("Max Deflection", f"{delta_calc * 1000:.3f} mm")
-m2.metric("Total Span (L)", f"{x_len:.1f} meters")
-m3.metric("Applied Load Force", f"{P_force:.0f} N")
-m4.metric("Flexural Rigidity (EI)", f"{E_mod * I_inertia:.2e} N-m2")
-
-st.write("")
-
-# Construct scientific matplotlib workspace
-fig, ax = plt.subplots(figsize=(14, 4.5))
-
-# Plot undeflected baseline and structural deflection curves
-ax.plot(x_coord, np.zeros_like(x_coord), color='#475569', linestyle='--', alpha=0.5, label='Undeflected Axis')
-ax.plot(x_coord, y_disp * 1000, color='#38bdf8', linewidth=5, label='Elastic Line Curvature')
-ax.fill_between(x_coord, y_disp * 1000, 0, color='#38bdf8', alpha=0.08)
-
-# Render pinning reactions visually using heavy triangular markers
-ax.scatter([0, x_len], [0, 0], color='#f59e0b', s=250, marker='^', choose_zorder=5)
-
-# Generate custom vector arrow force overlay
-ax.annotate(
-    f"Force Vector P: {P_force:.0f} N", 
-    xy=(x_len/2, np.min(y_disp)*1000), 
-    xytext=(x_len/2, np.min(y_disp)*1000 + (delta_calc*1000*0.4) + 6),
-    arrowprops=dict(facecolor='#f59e0b', shrink=0.08, width=
+m1.metric("Max Displacement", f"{delta_max * 1000:.3f} mm")
+m2.metric("Total Span Range", f"{L:.1f} m")
+m3.metric("Applied Load force", f"{P:.0f} N")
+m4.metric("Rigidity Factor (EI)", f"{E*I_val:.2e} N-m2")
