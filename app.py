@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
-# Safe optional import for PDF
+# Safe PDF import
 try:
     from reportlab.pdfgen import canvas
     pdf_available = True
@@ -11,42 +11,58 @@ except:
     pdf_available = False
 
 # =========================
-# PAGE SETUP
+# PAGE CONFIG
 # =========================
-st.set_page_config(page_title="Ultimate Beam Analyzer", layout="wide")
+st.set_page_config(page_title="ICT Structural Safety", layout="wide")
 plt.style.use('dark_background')
 
 # =========================
-# BACKGROUND STYLE
+# BACKGROUND (BEAM IMAGE)
 # =========================
 st.markdown("""
 <style>
 .stApp {
-    background-image: url("https://images.unsplash.com/photo-1503387762-592deb58ef4e");
+    background-image: url("https://images.unsplash.com/photo-1581093458791-9d42b6e50425");
     background-size: cover;
 }
 .block-container {
-    background: rgba(0,0,0,0.75);
+    background: rgba(0,0,0,0.80);
     padding: 2rem;
     border-radius: 15px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🏗️ Ultimate Structural Beam Analyzer")
+# =========================
+# TITLE
+# =========================
+st.title("🏗️ Beam Deflection Visualizer")
+st.subheader("📘 ICT for Structural Safety")
+
+# =========================
+# TEAM SECTION
+# =========================
+with st.expander("👥 Project Team Members"):
+    st.write("""
+**Abdul Mannan** — 25-ME-55  
+**Muhammad bin Akarma** — 25-ME-59  
+**Muneeb Azhar** — 25-ME-27  
+**Ahmed Ali** — 25-ME-115  
+**Hammad Fida** — 25-ME-03  
+""")
 
 # =========================
 # SIDEBAR INPUTS
 # =========================
 with st.sidebar:
-    st.header("⚙ Inputs")
+    st.header("⚙️ Input Parameters")
 
     L = st.slider("Length (m)", 1.0, 20.0, 10.0)
 
     load_type = st.selectbox("Load Type", ["Point Load", "UDL", "Triangular"])
 
     if load_type == "Point Load":
-        P = st.slider("Point Load (N)", 100.0, 15000.0, 5000.0)
+        P = st.slider("Load (N)", 100.0, 15000.0, 5000.0)
         w = 0
     else:
         w = st.slider("Load (N/m)", 10.0, 5000.0, 500.0)
@@ -93,12 +109,12 @@ elif load_type == "UDL":
     y = (w * x * (L**3 - 2 * L * x**2 + x**3)) / (24 * E * I)
     M_max = (w * L**2) / 8
 
-else:  # Triangular
+else:
     delta_max = (w * L**4) / (30 * E * I)
     y = (w * x * (L - x)**3) / (30 * E * I)
     M_max = (w * L**2) / 6
 
-y = -y  # downward deflection
+y = -y
 
 sigma = (M_max * c) / I
 FS = allowable / sigma if sigma != 0 else 0
@@ -109,15 +125,16 @@ FS = allowable / sigma if sigma != 0 else 0
 st.markdown("### 📊 Results")
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Max Deflection (mm)", f"{delta_max*1000:.2f}")
-c2.metric("Max Moment (Nm)", f"{M_max:.2f}")
-c3.metric("Stress (MPa)", f"{sigma/1e6:.2f}")
-c4.metric("Factor of Safety", f"{FS:.2f}")
+
+c1.metric("Max Deflection", f"{delta_max*1000:.2f} mm")
+c2.metric("Max Moment", f"{M_max:.2f} Nm")
+c3.metric("Stress", f"{sigma/1e6:.2f} MPa")
+c4.metric("FOS", f"{FS:.2f}")
 
 # =========================
-# DEFLECTION PLOT
+# GRAPH
 # =========================
-st.markdown("### 📉 Deflection")
+st.markdown("### 📉 Deflection Curve")
 
 fig, ax = plt.subplots()
 ax.plot(x, y * 1000, linewidth=3)
@@ -127,21 +144,6 @@ ax.set_ylabel("Deflection (mm)")
 ax.grid(True)
 
 st.pyplot(fig)
-plt.close(fig)
-
-# =========================
-# 3D STYLE VIEW
-# =========================
-st.markdown("### 🧊 Beam Visualization")
-
-fig2, ax2 = plt.subplots()
-ax2.plot(x, np.zeros_like(x), linewidth=8)
-ax2.plot(x, y * 200, linewidth=2)
-ax2.set_title("3D Style")
-ax2.axis('off')
-
-st.pyplot(fig2)
-plt.close(fig2)
 
 # =========================
 # ANIMATION
@@ -150,7 +152,7 @@ st.markdown("### 🎬 Animation")
 
 if st.checkbox("Play Animation"):
     placeholder = st.empty()
-    for scale in np.linspace(0, 1, 15):
+    for scale in np.linspace(0, 1, 12):
         fig_anim, ax_anim = plt.subplots()
         ax_anim.plot(x, y * scale * 1000)
         ax_anim.set_ylim(min(y)*1000, 10)
@@ -161,39 +163,42 @@ if st.checkbox("Play Animation"):
 # =========================
 # SAFETY
 # =========================
-st.markdown("### ⚠ Safety Check")
+st.markdown("### ⚠️ Safety Check")
 
 if FS > 2:
     st.success("✅ SAFE DESIGN")
 elif FS > 1:
-    st.warning("⚠ Moderate Safety")
+    st.warning("⚠ MODERATE")
 else:
     st.error("❌ FAILURE RISK")
 
 # =========================
-# PDF EXPORT (SAFE)
+# PDF EXPORT
 # =========================
-st.markdown("### 📄 Export Report")
+st.markdown("### 📄 Report")
 
 if pdf_available:
+
     def create_pdf():
         file_path = "report.pdf"
-        c_pdf = canvas.Canvas(file_path)
-        c_pdf.drawString(100, 800, "Beam Report")
-        c_pdf.drawString(100, 770, f"Length: {L} m")
-        c_pdf.drawString(100, 750, f"Deflection: {delta_max:.6f} m")
-        c_pdf.drawString(100, 730, f"Stress: {sigma:.2f} Pa")
-        c_pdf.drawString(100, 710, f"FOS: {FS:.2f}")
-        c_pdf.save()
+        c = canvas.Canvas(file_path)
+
+        c.drawString(100, 800, "Beam Deflection Report")
+        c.drawString(100, 770, f"Length: {L} m")
+        c.drawString(100, 750, f"Deflection: {delta_max:.6f}")
+        c.drawString(100, 730, f"Stress: {sigma:.2f}")
+        c.drawString(100, 710, f"FOS: {FS:.2f}")
+
+        c.save()
         return file_path
 
     if st.button("Generate PDF"):
-        pdf_path = create_pdf()
-        with open(pdf_path, "rb") as f:
-            st.download_button("⬇ Download PDF", f, "beam_report.pdf")
+        pdf = create_pdf()
+        with open(pdf, "rb") as f:
+            st.download_button("Download PDF", f, "beam_report.pdf")
 
 else:
-    st.warning("Install 'reportlab' to enable PDF export.")
+    st.warning("Install reportlab for PDF feature")
 
 
 
