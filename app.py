@@ -19,7 +19,7 @@ st.set_page_config(
 st.title("⚡ ICT for Structural Safety")
 st.subheader("Live Beam Deflection Visualizer & Risk Monitor")
 
-# Team Members Display Box using pure Markdown (No HTML)
+# Team Members Display Box using pure Markdown
 with st.container(border=True):
     st.write("### DEVELOPED BY TEAM:")
     
@@ -72,10 +72,8 @@ def get_deflection_curve(x, P_N, beam_type):
     EI = E_Pa * I_m4
     
     if beam_type == "Cantilever (Fixed-Free)":
-        # y = (P * x^2 * (3L - x)) / (6EI)
         y = (P_N * (x**2) * (3 * L_m - x)) / (6 * EI)
     else: 
-        # Pinned-pinned mid-span loading
         half_L = L_m / 2
         for idx, x_val in enumerate(x):
             if x_val <= half_L:
@@ -83,7 +81,7 @@ def get_deflection_curve(x, P_N, beam_type):
             else:
                 x_sym = L_m - x_val
                 y[idx] = (P_N * x_sym * (3 * L_m**2 - 4 * x_sym**2)) / (48 * EI)
-    return y * 1000 # Convert to mm
+    return y * 1000
 
 # ==========================================
 # LIVE DASHBOARD APP LOOP
@@ -103,9 +101,4 @@ while True:
         if load_type == "Oscillating Dynamic Load":
             dynamic_load = base_load * (1 + 0.6 * np.sin(iteration * 0.2))
         else:
-            dynamic_load = base_load + np.random.uniform(-2.5, 2.5)
-    else:
-        dynamic_load = base_load
-
-    load_N = dynamic_load * 1000
-    deflection = get_
+            dynamic_load =
